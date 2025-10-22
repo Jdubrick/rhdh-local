@@ -63,7 +63,8 @@ jobs:
     - name: Install tool
       if: ${{ matrix.tool == 'podman' }}
       run: |
-        sudo apt install podman podman-docker
+        sudo apt update
+        sudo apt install -y podman podman-docker
         curl -LO https://github.com/docker/compose/releases/download/v2.40.0/docker-compose-linux-x86_64
         chmod +x docker-compose-linux-x86_64
         sudo mv docker-compose-linux-x86_64 /usr/local/bin/docker-compose
@@ -76,6 +77,10 @@ jobs:
         echo
         echo "*** ${{ matrix.tool }} compose version ***"
         ${{ matrix.tool }} compose version
+
+    - name: Configure DOCKER_HOST for Podman
+      if: ${{ matrix.tool == 'podman' }}
+      run: echo "DOCKER_HOST=unix:///run/podman/podman.sock" >> $GITHUB_ENV
 
     - name: Compose config
       run: ${{ matrix.tool }} compose ${{ matrix.composeConfig.cliArgs }} config
@@ -128,8 +133,6 @@ jobs:
           mkdir -p dynamic-plugins-root
 
     - name: Start app
-      env:
-        DOCKER_HOST: unix:///run/user/1000/docker.sock
       run: |
         ${{ matrix.tool }} compose ${{ matrix.composeConfig.cliArgs }} up --detach --quiet-pull
         ${{ matrix.tool }} compose ${{ matrix.composeConfig.cliArgs }} ps

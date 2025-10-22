@@ -26,7 +26,7 @@ services:
     restart: "no"
 
   ollama:
-    image: docker.io/ollama/ollama:0.10.0-rc0
+    image: docker.io/ollama/ollama:0.10.0
     container_name: ollama
     volumes:
       - ${OLLAMA_MODELS_PATH:-ollama_data}:/root/.ollama
@@ -35,13 +35,29 @@ services:
         required: true
       - path: "./.env"
         required: false
-    command: >
-      "ollama serve & sleep 5 && ollama pull ${OLLAMA_MODEL:-llama3.2:1b} && touch /tmp/ready && wait"
+    command: |
+      # Start the server in the background
+      ollama serve &
+      pid=$!
+
+      # Wait for the server to be ready
+      echo "Waiting for Ollama server to start..."
+      while ! curl -s -f http://localhost:11434/ > /dev/null; do
+        sleep 1
+      done
+      echo "Ollama server is ready."
+
+      # Pull the model in the background
+      echo "Pulling model: ${OLLAMA_MODEL:-llama3.2:1b}"
+      ollama pull "${OLLAMA_MODEL:-llama3.2:1b}" &
+      
+      # Wait for the server process to exit
+      wait "$pid"
     entrypoint: [ "sh", "-c" ]
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD", "test", "-f", "/tmp/ready" ]
-      interval: 15s
+      test: [ "CMD", "curl", "-f", "http://localhost:11434/" ]
+      interval: 10s
       timeout: 5s
       retries: 5
 

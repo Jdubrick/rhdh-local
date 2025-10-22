@@ -67,7 +67,8 @@ jobs:
         curl -LO https://github.com/docker/compose/releases/download/v2.40.0/docker-compose-linux-x86_64
         chmod +x docker-compose-linux-x86_64
         sudo mv docker-compose-linux-x86_64 /usr/local/bin/docker-compose
-        sudo systemctl enable --now podman.socket
+        sudo systemctl --user enable --now podman.socket
+        export DOCKER_HOST=unix:///run/user/1000/docker.sock
 
     - name: Display versions
       run: |
